@@ -1,25 +1,26 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-source $(dirname $0)/version
+source "$(dirname "$0")/version"
 
-ARCH=${ARCH:-"amd64"}
+ARCH=${ARCH:-amd64}
+PLATFORM=${PLATFORM:-linux/${ARCH}}
 SUFFIX="-${ARCH}"
 
-cd $(dirname $0)/..
+cd "$(dirname "$0")/.."
 
 TAG=${TAG:-${VERSION}${SUFFIX}}
 REPO=${REPO:-rancher}
 
-if echo $TAG | grep -q dirty; then
+if [[ "$TAG" == *dirty* ]]; then
     TAG=dev
 fi
 
-IMAGE=${REPO}/klipper-helm:${TAG}
+IMAGE="${REPO}/klipper-helm:${TAG}"
 DOCKERFILE=Dockerfile
-if [ -e ${DOCKERFILE}.${ARCH} ]; then
-    DOCKERFILE=${DOCKERFILE}.${ARCH}
+if [ -e "${DOCKERFILE}.${ARCH}" ]; then
+    DOCKERFILE="${DOCKERFILE}.${ARCH}"
 fi
 
-docker build --build-arg ARCH=${ARCH} --build-arg BUILDDATE=$(date +%Y%m%d) -f ${DOCKERFILE} -t ${IMAGE} .
-echo Built ${IMAGE}
+docker buildx build --platform "${PLATFORM}" --build-arg BUILDDATE="$(date +%Y%m%d)" -f "${DOCKERFILE}" -t "${IMAGE}" --load .
+echo "Built ${IMAGE} for ${PLATFORM}"
